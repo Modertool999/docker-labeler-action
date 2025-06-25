@@ -2,17 +2,27 @@
 
 set -eo pipefail
 
-# 1) Find the real binary (moved aside by the action)
-DOCKER_PATH=$(command -v docker)
-DOCKER_REAL="${DOCKER_PATH}-original"
+CMD_NAME=$(basename "$0")                     # "docker" or "docker-buildx"
+REAL_PATH="$(command -v "$CMD_NAME")-original"
 
-# 2) Fail if it’s not where we expect
-if [[ ! -x "$DOCKER_REAL" ]]; then
-  echo "[entrypoint] ERROR: real docker not found at $DOCKER_REAL" >&2
+if [[ ! -x "$REAL_PATH" ]]; then
+  echo "[entrypoint] ERROR: real $CMD_NAME not found at $REAL_PATH" >&2
   exit 1
 fi
 
-# 3) Collect all GITHUB_* envs into --label args
+INJECT=false
+if [[ "$CMD_NAME" == "docker-buildx" ]]; then
+  INJECT=true
+elif [[ "$CMD_NAME" == "docker" && "$1" == "build" ]]; then
+  INJECT=true
+fi
+
+if [[ "$INJECT" != true ]]; then
+  # Not a build command → just run Docker as normal
+  exec "$REAL_PATH" "$@"
+fi
+
+# It’s a build/buildx command → collect labels
 LABEL_ARGS=()
 while IFS='=' read -r var val; do
   if [[ "$var" =~ ^GITHUB_ ]]; then
@@ -20,6 +30,5 @@ while IFS='=' read -r var val; do
   fi
 done < <(printenv)
 
-# 4) Log and hand off
 echo "[entrypoint] injecting labels: ${LABEL_ARGS[*]}" >&2
-exec "$DOCKER_REAL" "$@" "${LABEL_ARGS[@]}"
+exec "$REAL_PATH" "$@" "${LABEL_ARGS[@]}"
