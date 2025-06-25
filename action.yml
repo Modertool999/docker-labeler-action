@@ -1,19 +1,13 @@
 name: 'Docker Labeler'
-description: 'Wraps docker and docker-buildx to auto-inject GITHUB_* env vars as labels'
-inputs:
-  extra-labels:
-    description: 'Optional comma-separated key=val pairs to also add as labels'
-    required: false
+description: 'Wraps docker and docker-buildx to auto-inject all GITHUB_* env vars as labels'
 runs:
   using: 'composite'
   steps:
     - name: Install wrapper over docker
       shell: bash
       run: |
-        # Find the docker binary path and back it up
         DOCKER_PATH=$(command -v docker)
         sudo mv "$DOCKER_PATH" "${DOCKER_PATH}-original"
-        # Copy in our entrypoint and install
         cp "$GITHUB_ACTION_PATH/entrypoint.sh" ./docker-original
         sudo mv ./docker-original "$DOCKER_PATH"
         sudo chmod +x "$DOCKER_PATH"
