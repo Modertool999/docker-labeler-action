@@ -1,0 +1,19 @@
+name: Test Labeler Action
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wrap Docker
+        uses: ./
+
+      - name: Build tiny image
+        run: |
+          echo -e "FROM alpine:3.18\nCMD [\"echo\",\"ok\"]" > Dockerfile
+          docker build . -t demo:act-test
+
+      - name: Show labels
+        run: docker inspect demo:act-test | jq '.[0].Config.Labels'
