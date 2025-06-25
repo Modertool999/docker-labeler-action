@@ -1,5 +1,3 @@
-name: 'Docker Labeler'
-description: 'Wraps docker and docker-buildx to auto-inject all GITHUB_* env vars as labels'
 runs:
   using: 'composite'
   steps:
@@ -15,10 +13,12 @@ runs:
     - name: Install wrapper over docker-buildx
       shell: bash
       run: |
-        BUILDX_PATH=$(command -v docker-buildx)
-        if [[ -n "$BUILDX_PATH" ]]; then
+        if command -v docker-buildx &>/dev/null; then
+          BUILDX_PATH=$(command -v docker-buildx)
           sudo mv "$BUILDX_PATH" "${BUILDX_PATH}-original"
           cp "$GITHUB_ACTION_PATH/entrypoint.sh" ./docker-buildx-original
           sudo mv ./docker-buildx-original "$BUILDX_PATH"
           sudo chmod +x "$BUILDX_PATH"
+        else
+          echo "[container] docker-buildx not found — skipping wrapper install"
         fi
